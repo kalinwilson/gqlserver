@@ -1,7 +1,12 @@
 package graphql.server.service;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Splitter;
+import com.google.common.io.CharSource;
 import graphql.server.model.Book;
+import graphql.server.model.Satellite;
 import graphql.server.repository.BookRepository;
+import graphql.server.repository.SatelliteRepository;
 import graphql.server.service.datafetcher.AllBooksDataFetcher;
 import graphql.server.service.datafetcher.BookDataFetcher;
 import graphql.GraphQL;
@@ -18,46 +23,64 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
+import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
+import com.google.common.io.Resources;
+
+import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Service
 public class GraphQLService {
     private static Logger logger = LoggerFactory.getLogger(GraphQLService.class);
     private BookRepository bookRepository;
+    private SatelliteRepository satelliteRepository;
     private AllBooksDataFetcher allBooksDataFetcher;
     private BookDataFetcher bookDataFetcher;
 
-    @Value("classpath:books.graphql")
-    Resource resource;
 
     private GraphQL graphQL;
 
     @Autowired
-    public GraphQLService(BookRepository bookRepository, AllBooksDataFetcher allBooksDataFetcher,
+    public GraphQLService(BookRepository bookRepository, SatelliteRepository satelliteRepository, AllBooksDataFetcher allBooksDataFetcher,
                           BookDataFetcher bookDataFetcher) {
         this.bookRepository=bookRepository;
+        this.satelliteRepository = satelliteRepository;
         this.allBooksDataFetcher=allBooksDataFetcher;
         this.bookDataFetcher=bookDataFetcher;
     }
 
     @PostConstruct
-    private void loadSchema() throws IOException {
-        logger.info("Entering loadSchema@GraphQLService");
+    public void init() throws IOException {
+        URL url = Resources.getResource("books.graphql");
+        String sdl = Resources.toString(url, UTF_8);
+        GraphQLSchema graphQLSchema = buildSchema(sdl);
+        this.graphQL = GraphQL.newGraphQL(graphQLSchema).build();
+
         loadDataIntoHSQL();
-
-        //Get the graphql file
-        File file = resource.getFile();
-
-        //Parse SchemaF
-        TypeDefinitionRegistry typeDefinitionRegistry = new SchemaParser().parse(file);
-        RuntimeWiring runtimeWiring = buildRuntimeWiring();
-        GraphQLSchema graphQLSchema = new SchemaGenerator().makeExecutableSchema(typeDefinitionRegistry, runtimeWiring);
-        graphQL = GraphQL.newGraphQL(graphQLSchema).build();
     }
 
+    private GraphQLSchema buildSchema(String sdl) {
+        TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
+        RuntimeWiring runtimeWiring = buildRuntimeWiring();
+        SchemaGenerator schemaGenerator = new SchemaGenerator();
+        return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
+    }
+
+    private RuntimeWiring buildRuntimeWiring() {
+        return RuntimeWiring.newRuntimeWiring()
+                .type("Query", typeWiring -> typeWiring
+                        .dataFetcher("allBooks", allBooksDataFetcher)
+                        .dataFetcher("book", bookDataFetcher))
+                .build();
+    }
+
+
     private void loadDataIntoHSQL() {
+        // Load book data
         Stream.of(
                 new Book("1001", "The C Programming Language", "PHI Learning", "1978",
                         new String[] {
@@ -85,15 +108,41 @@ public class GraphQLService {
         ).forEach(book -> {
             bookRepository.save(book);
         });
+
+        // Load Satellite Data
+        URL satelliteDataURL = Resources.getResource("data/satellite.csv");
+        BufferedReader reader = null;
+        try {
+            CharSource charSource = Resources.asCharSource(satelliteDataURL, UTF_8);
+            reader = charSource.openBufferedStream();
+            reader.lines().map(mapToSatellite).forEach(satellite -> {
+                satelliteRepository.save(satellite);
+            });
+
+        } catch (IOException e){
+
+        } finally {
+            if(reader != null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    logger.error("Error closing stream.", e);
+                }
+            }
+        }
     }
 
-    private RuntimeWiring buildRuntimeWiring() {
-        return RuntimeWiring.newRuntimeWiring()
-                .type("Query", typeWiring -> typeWiring
-                        .dataFetcher("allBooks", allBooksDataFetcher)
-                        .dataFetcher("book", bookDataFetcher))
-        .build();
-    }
+    private Function<String, Satellite> mapToSatellite = (line) -> {
+        List<String> satFields = Splitter.on(',').trimResults().splitToList(line);
+        try{
+            Satellite sat = new Satellite(satFields.get(0), Integer.parseInt(satFields.get(1)), satFields.get(2), satFields.get(3), Integer.parseInt(satFields.get(4)));
+            return sat;
+        } catch(NumberFormatException e){
+            logger.error("Error converting csv line to Satellite.", e);
+        }
+        return null;
+    };
+
 
     @Bean
     public GraphQL getGraphQL(){
