@@ -1,0 +1,20 @@
+schema{
+    query:ConsolidatedQuery
+}
+
+type ConsolidatedQuery{
+    allSatellites: [Satellite]
+    satelliteByNumber(satelliteNumber: Int!): [Satellite]
+
+    "Fetch a list of satellites by number and category. A list of satellite numbers, or null to select all satellites in a category. Categories are OR'd. The default category is 1."
+    satellitesByNumberAndCategory(satelliteNumbers: [Int], categories: [Int]): [Satellite]
+    satelliteById(id: ID!): Satellite
+}
+
+type Satellite{
+    id:ID
+    satelliteNumber:Int
+    name:String
+    intlDesignator:String
+    category:Int
+}

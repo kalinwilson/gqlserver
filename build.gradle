@@ -2,11 +2,12 @@ plugins {
 	id 'org.springframework.boot' version '2.2.1.RELEASE'
 	id 'io.spring.dependency-management' version '1.0.8.RELEASE'
 	id 'java'
+	id "com.palantir.docker" version "0.22.1"
 }
 
 group = 'graphql.server.demo'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
+sourceCompatibility = '8'
 
 configurations {
 	developmentOnly
@@ -41,3 +42,26 @@ dependencies {
 test {
 	useJUnitPlatform()
 }
+
+// Ref: https://spring.io/guides/gs/spring-boot-docker/
+task unpack(type: Copy){
+    dependsOn bootJar
+    from(zipTree(tasks.bootJar.outputs.files.singleFile))
+    into("build/dependency")
+}
+
+// task 'docker' to build image
+// task 'dockerPushOra' to push to Ora registry on kepler
+docker {
+    dependsOn unpack
+    name "${project.group}/${bootJar.baseName}"
+    tag 'Ora', "kepler:5000/${rootProject.name}:latest"
+    tag 'OraVersioned', "kepler:5000/${rootProject.name}:${version}"
+    tag 'di2e', "https://nexus.di2e.net/nexus/content/repositories/Private_SSAC2_Snapshots/${rootProject.name}:latest"
+    tag 'Local', "registry.local:50000/${rootProject.name}:latest"
+    tag 'LocalVersioned', "registry.local:50000/${rootProject.name}:${version}"
+    copySpec.from(tasks.unpack.outputs).into("dependency")
+    buildArgs(['DEPENDENCY': "dependency"])
+}
+
+build.dependsOn unpack

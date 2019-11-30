@@ -19,6 +19,7 @@ public class AllBooksDataFetcher implements DataFetcher<List<Book>> {
 
     @Override
     public List<Book> get(DataFetchingEnvironment dataFetchingEnvironment) {
+
         return bookRepository.findAll();
     }
 }
