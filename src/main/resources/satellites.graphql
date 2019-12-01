@@ -17,4 +17,5 @@ type Satellite{
     name:String
     intlDesignator:String
     category:Int
+    integratorControls(applications: [ApplicationEnum]) : IntegratorControls
 }

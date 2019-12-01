@@ -3,9 +3,9 @@ package graphql.server.service;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharSource;
-import graphql.server.model.Book;
-import graphql.server.model.Satellite;
+import graphql.server.model.*;
 import graphql.server.repository.BookRepository;
+import graphql.server.repository.IntegratorControlsRepository;
 import graphql.server.repository.SatelliteRepository;
 import graphql.server.service.datafetcher.*;
 import graphql.GraphQL;
@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -38,42 +37,62 @@ public class GraphQLService {
     private static Logger logger = LoggerFactory.getLogger(GraphQLService.class);
     private BookRepository bookRepository;
     private SatelliteRepository satelliteRepository;
+    private IntegratorControlsRepository integratorControlsRepository;
+
+
     private AllBooksDataFetcher allBooksDataFetcher;
     private BookDataFetcher bookDataFetcher;
     private AllSatellitesDataFetcher allSatellitesDataFetcher;
     private SatellitesByIdDataFetcher satelliteByIdDataFetcher;
     private SatelliteByNumberDataFetcher satelliteByNumberDataFetcher;
     private SatellitesByNumberAndCategoryDataFetcher satellitesByNumberAndCategoryDataFetcher;
+    private IntegratorControlsByIdDataFetcher integratorControlsByIdDataFetcher;
+    private IntegratorControlsBySatelliteIdAndApplicationsDataFetcher integratorControlsBySatelliteIdAndApplicationDataFetcher;
+    private IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher integratorControlsBySatelliteNumberAndApplicationDataFetcher;
+    private IntegratorControlsDataFetcher integratorControlsDataFetcher;
 
     private GraphQL graphQL;
 
     @Autowired
     public GraphQLService(BookRepository bookRepository,
                           SatelliteRepository satelliteRepository,
+                          IntegratorControlsRepository integratorControlsRepository,
                           AllBooksDataFetcher allBooksDataFetcher,
                           BookDataFetcher bookDataFetcher,
                           AllSatellitesDataFetcher allSatelliteDataFetcher,
                           SatellitesByIdDataFetcher satelliteByIdDataFetcher,
                           SatelliteByNumberDataFetcher satelliteByNumberDataFetcher,
-                          SatellitesByNumberAndCategoryDataFetcher satellitesByNumberAndCategoryDataFetcher) {
+                          SatellitesByNumberAndCategoryDataFetcher satellitesByNumberAndCategoryDataFetcher,
+                          IntegratorControlsByIdDataFetcher integratorControlsByIdDataFetcher,
+                          IntegratorControlsBySatelliteIdAndApplicationsDataFetcher integratorControlsBySatelliteIdAndApplicationDataFetcher,
+                          IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher integratorControlsBySatelliteNumberAndApplicationDataFetcher,
+                          IntegratorControlsDataFetcher integratorControlsDataFetcher) {
         this.bookRepository = bookRepository;
         this.satelliteRepository = satelliteRepository;
+        this.integratorControlsRepository = integratorControlsRepository;
         this.allBooksDataFetcher = allBooksDataFetcher;
         this.bookDataFetcher = bookDataFetcher;
         this.allSatellitesDataFetcher = allSatelliteDataFetcher;
         this.satelliteByIdDataFetcher = satelliteByIdDataFetcher;
         this.satelliteByNumberDataFetcher = satelliteByNumberDataFetcher;
         this.satellitesByNumberAndCategoryDataFetcher = satellitesByNumberAndCategoryDataFetcher;
+        this.integratorControlsByIdDataFetcher = integratorControlsByIdDataFetcher;
+        this.integratorControlsBySatelliteIdAndApplicationDataFetcher = integratorControlsBySatelliteIdAndApplicationDataFetcher;
+        this.integratorControlsBySatelliteNumberAndApplicationDataFetcher = integratorControlsBySatelliteNumberAndApplicationDataFetcher;
+        this.integratorControlsDataFetcher = integratorControlsDataFetcher;
     }
 
     @PostConstruct
     public void init() throws IOException {
 //       This is an example of how to load multiple schema files
         URL satelliteUrl = Resources.getResource("satellites.graphql");
+        URL integratorControlsUrl = Resources.getResource("integratorControls.graphql");
         URL booksUrl = Resources.getResource("books.graphql");
         List<String> schemas = Lists.newArrayList();
         String satelliteSchema = Resources.toString(satelliteUrl, UTF_8);
         schemas.add(satelliteSchema);
+        String integratorControlsSchema = Resources.toString(integratorControlsUrl, UTF_8);
+        schemas.add(integratorControlsSchema);
         String bookSchema = Resources.toString(booksUrl, UTF_8);
         schemas.add(bookSchema);
         GraphQLSchema graphQLSchema = buildSchema(schemas);
@@ -101,6 +120,10 @@ public class GraphQLService {
                         .dataFetcher("satelliteById", satelliteByIdDataFetcher)
                         .dataFetcher("satelliteByNumber", satelliteByNumberDataFetcher)
                         .dataFetcher("satellitesByNumberAndCategory", satellitesByNumberAndCategoryDataFetcher)
+                        .dataFetcher("integratorControlsById", integratorControlsByIdDataFetcher)
+                        .dataFetcher("integratorControlsBySatelliteIdAndApplications", integratorControlsBySatelliteIdAndApplicationDataFetcher)
+                        .dataFetcher("integratorControlsBySatelliteNumberAndApplications", integratorControlsBySatelliteNumberAndApplicationDataFetcher)
+                        .dataFetcher("integratorControls", integratorControlsDataFetcher)
                         .dataFetcher("allBooks", allBooksDataFetcher)
                         .dataFetcher("book", bookDataFetcher))
                 .build();
@@ -118,6 +141,7 @@ public class GraphQLService {
 
 
     private void loadDataIntoHSQL() {
+        logger.debug(("Loading data into the embedded test database..."));
         // Load book data
         Stream.of(
                 new Book("1001", "The C Programming Language", "PHI Learning", "1978",
@@ -144,17 +168,31 @@ public class GraphQLService {
                                 "Scott Chacon"
                         })
         ).forEach(book -> {
+            logger.debug("        Saving book {}", book.getIsn());
             bookRepository.save(book);
         });
 
+        logger.debug("    Loading Satellite data...");
         // Load Satellite Data
         URL satelliteDataURL = Resources.getResource("data/satellite.csv");
+        // Load IntegratorControls Data
+        URL icURL = Resources.getResource("data/integratorControls.csv");
         BufferedReader reader = null;
         try {
             CharSource charSource = Resources.asCharSource(satelliteDataURL, UTF_8);
             reader = charSource.openBufferedStream();
             reader.lines().map(mapToSatellite).forEach(satellite -> {
+                logger.debug("        Saving Satellite {}", satellite.getId());
                 satelliteRepository.save(satellite);
+            });
+            reader.close();
+
+            logger.debug("    Loading IntegratorControls data...");
+            charSource = Resources.asCharSource(icURL, UTF_8);
+            reader = charSource.openBufferedStream();
+            reader.lines().map(mapToIntegratorControls).forEach(ic -> {
+                logger.debug("        Saving IntegratorControls {}", ic.getId());
+                integratorControlsRepository.save(ic);
             });
 
         } catch (IOException e) {
@@ -177,6 +215,31 @@ public class GraphQLService {
             return sat;
         } catch (NumberFormatException e) {
             logger.error("Error converting csv line to Satellite.", e);
+        }
+        return null;
+    };
+
+    private Function<String, IntegratorControls> mapToIntegratorControls = (line) -> {
+        List<String> fields = Splitter.on(',').trimResults().splitToList(line);
+        try {
+            IntegratorControls ic = new IntegratorControls(
+                    fields.get(0),
+                    fields.get(1),
+                    IcApplication.getByIntValue(Integer.valueOf(fields.get(2))),
+                    IcCoordinateSystem.getByIntValue(Integer.valueOf(fields.get(3))),
+                    Double.valueOf(fields.get(4)),
+                    Double.valueOf(fields.get(5)),
+                    PartialDerivatives.getByIntValue(Integer.valueOf(fields.get(6))),
+                    Boolean.valueOf(fields.get(7)),
+                    Propagator.getByIntValue(Integer.valueOf(fields.get(8))),
+                    Boolean.valueOf(fields.get(9)),
+                    StepMode.getByIntValue(Integer.valueOf(fields.get(10))),
+                    StepSizeMethod.getByIntValue(Integer.valueOf(fields.get(11))),
+                    StepSizeSource.getByIntValue(Integer.valueOf(fields.get(12)))
+                    );
+            return ic;
+        } catch (NumberFormatException e) {
+            logger.error("Error converting csv line to IntegratorControls.", e);
         }
         return null;
     };
