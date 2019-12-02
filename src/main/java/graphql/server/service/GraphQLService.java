@@ -3,8 +3,11 @@ package graphql.server.service;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharSource;
+import com.sun.org.apache.xpath.internal.operations.Bool;
+import graphql.execution.instrumentation.tracing.TracingInstrumentation;
 import graphql.server.model.*;
 import graphql.server.repository.BookRepository;
+import graphql.server.repository.ElementConversionControlsRepository;
 import graphql.server.repository.IntegratorControlsRepository;
 import graphql.server.repository.SatelliteRepository;
 import graphql.server.service.datafetcher.*;
@@ -35,68 +38,50 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Service
 public class GraphQLService {
     private static Logger logger = LoggerFactory.getLogger(GraphQLService.class);
-    private BookRepository bookRepository;
-    private SatelliteRepository satelliteRepository;
-    private IntegratorControlsRepository integratorControlsRepository;
 
+    @Autowired private BookRepository bookRepository;
+    @Autowired private SatelliteRepository satelliteRepository;
+    @Autowired private IntegratorControlsRepository integratorControlsRepository;
+    @Autowired private ElementConversionControlsRepository elementConversionControlsRepository;
 
-    private AllBooksDataFetcher allBooksDataFetcher;
-    private BookDataFetcher bookDataFetcher;
-    private AllSatellitesDataFetcher allSatellitesDataFetcher;
-    private SatellitesByIdDataFetcher satelliteByIdDataFetcher;
-    private SatelliteByNumberDataFetcher satelliteByNumberDataFetcher;
-    private SatellitesByNumberAndCategoryDataFetcher satellitesByNumberAndCategoryDataFetcher;
-    private IntegratorControlsByIdDataFetcher integratorControlsByIdDataFetcher;
-    private IntegratorControlsBySatelliteIdAndApplicationsDataFetcher integratorControlsBySatelliteIdAndApplicationDataFetcher;
-    private IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher integratorControlsBySatelliteNumberAndApplicationDataFetcher;
-    private IntegratorControlsDataFetcher integratorControlsDataFetcher;
+    @Autowired private AllBooksDataFetcher allBooksDataFetcher;
+    @Autowired private BookDataFetcher bookDataFetcher;
+    @Autowired private AllSatellitesDataFetcher allSatellitesDataFetcher;
+    @Autowired private SatellitesByIdDataFetcher satelliteByIdDataFetcher;
+    @Autowired private SatelliteByNumberDataFetcher satelliteByNumberDataFetcher;
+    @Autowired private SatellitesByNumberAndCategoryDataFetcher satellitesByNumberAndCategoryDataFetcher;
+    @Autowired private IntegratorControlsByIdDataFetcher integratorControlsByIdDataFetcher;
+    @Autowired private IntegratorControlsBySatelliteIdAndApplicationsDataFetcher integratorControlsBySatelliteIdAndApplicationDataFetcher;
+    @Autowired private IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher integratorControlsBySatelliteNumberAndApplicationDataFetcher;
+    @Autowired private SatelliteIntegratorControlsDataFetcher satelliteIntegratorControlsDataFetcher;
+    @Autowired private SatelliteElementConversionControlsDataFetcher satelliteElementConversionControlsDataFetcher;
+
 
     private GraphQL graphQL;
 
-    @Autowired
-    public GraphQLService(BookRepository bookRepository,
-                          SatelliteRepository satelliteRepository,
-                          IntegratorControlsRepository integratorControlsRepository,
-                          AllBooksDataFetcher allBooksDataFetcher,
-                          BookDataFetcher bookDataFetcher,
-                          AllSatellitesDataFetcher allSatelliteDataFetcher,
-                          SatellitesByIdDataFetcher satelliteByIdDataFetcher,
-                          SatelliteByNumberDataFetcher satelliteByNumberDataFetcher,
-                          SatellitesByNumberAndCategoryDataFetcher satellitesByNumberAndCategoryDataFetcher,
-                          IntegratorControlsByIdDataFetcher integratorControlsByIdDataFetcher,
-                          IntegratorControlsBySatelliteIdAndApplicationsDataFetcher integratorControlsBySatelliteIdAndApplicationDataFetcher,
-                          IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher integratorControlsBySatelliteNumberAndApplicationDataFetcher,
-                          IntegratorControlsDataFetcher integratorControlsDataFetcher) {
-        this.bookRepository = bookRepository;
-        this.satelliteRepository = satelliteRepository;
-        this.integratorControlsRepository = integratorControlsRepository;
-        this.allBooksDataFetcher = allBooksDataFetcher;
-        this.bookDataFetcher = bookDataFetcher;
-        this.allSatellitesDataFetcher = allSatelliteDataFetcher;
-        this.satelliteByIdDataFetcher = satelliteByIdDataFetcher;
-        this.satelliteByNumberDataFetcher = satelliteByNumberDataFetcher;
-        this.satellitesByNumberAndCategoryDataFetcher = satellitesByNumberAndCategoryDataFetcher;
-        this.integratorControlsByIdDataFetcher = integratorControlsByIdDataFetcher;
-        this.integratorControlsBySatelliteIdAndApplicationDataFetcher = integratorControlsBySatelliteIdAndApplicationDataFetcher;
-        this.integratorControlsBySatelliteNumberAndApplicationDataFetcher = integratorControlsBySatelliteNumberAndApplicationDataFetcher;
-        this.integratorControlsDataFetcher = integratorControlsDataFetcher;
-    }
 
     @PostConstruct
     public void init() throws IOException {
 //       This is an example of how to load multiple schema files
         URL satelliteUrl = Resources.getResource("satellites.graphql");
         URL integratorControlsUrl = Resources.getResource("integratorControls.graphql");
+        URL elementConversionControlsUrl = Resources.getResource("elementConversionControls.graphql");
         URL booksUrl = Resources.getResource("books.graphql");
         List<String> schemas = Lists.newArrayList();
         String satelliteSchema = Resources.toString(satelliteUrl, UTF_8);
         schemas.add(satelliteSchema);
         String integratorControlsSchema = Resources.toString(integratorControlsUrl, UTF_8);
         schemas.add(integratorControlsSchema);
+        String elementConversionControlsSchema = Resources.toString(elementConversionControlsUrl, UTF_8);
+        schemas.add(elementConversionControlsSchema);
         String bookSchema = Resources.toString(booksUrl, UTF_8);
         schemas.add(bookSchema);
+
+        // Turn on instrumentation for query tracing in GraphQL Playground, etc.
         GraphQLSchema graphQLSchema = buildSchema(schemas);
-        this.graphQL = GraphQL.newGraphQL(graphQLSchema).build();
+        this.graphQL = GraphQL.newGraphQL(graphQLSchema)
+                .instrumentation(new TracingInstrumentation())
+                .build();
 
         loadDataIntoHSQL();
     }
@@ -108,14 +93,16 @@ public class GraphQLService {
         for(String schema : schemas){
             typeRegistry.merge(parser.parse(schema));
         }
+//        RuntimeWiring runtimeWiring = buildRuntimeWiring();
         RuntimeWiring runtimeWiring = buildRuntimeWiring();
         SchemaGenerator schemaGenerator = new SchemaGenerator();
         return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
     private RuntimeWiring buildRuntimeWiring() {
-        return RuntimeWiring.newRuntimeWiring()
-                .type("ConsolidatedQuery", typeWiring -> typeWiring
+        RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
+                .type(newTypeWiring("ConsolidatedQuery")
+                        .dataFetcher("satelliteByNumber", satelliteByNumberDataFetcher)
                         .dataFetcher("allSatellites", allSatellitesDataFetcher)
                         .dataFetcher("satelliteById", satelliteByIdDataFetcher)
                         .dataFetcher("satelliteByNumber", satelliteByNumberDataFetcher)
@@ -123,10 +110,13 @@ public class GraphQLService {
                         .dataFetcher("integratorControlsById", integratorControlsByIdDataFetcher)
                         .dataFetcher("integratorControlsBySatelliteIdAndApplications", integratorControlsBySatelliteIdAndApplicationDataFetcher)
                         .dataFetcher("integratorControlsBySatelliteNumberAndApplications", integratorControlsBySatelliteNumberAndApplicationDataFetcher)
-                        .dataFetcher("integratorControls", integratorControlsDataFetcher)
                         .dataFetcher("allBooks", allBooksDataFetcher)
                         .dataFetcher("book", bookDataFetcher))
+                .type(newTypeWiring("Satellite")
+                        .dataFetcher("integratorControls", satelliteIntegratorControlsDataFetcher)
+                        .dataFetcher("elementConversionControls", satelliteElementConversionControlsDataFetcher))
                 .build();
+        return  wiring;
     }
 
     //    private RuntimeWiring buildRuntimeWiring() {
@@ -177,6 +167,7 @@ public class GraphQLService {
         URL satelliteDataURL = Resources.getResource("data/satellite.csv");
         // Load IntegratorControls Data
         URL icURL = Resources.getResource("data/integratorControls.csv");
+        URL eccURL = Resources.getResource("data/elementConversionControls.csv");
         BufferedReader reader = null;
         try {
             CharSource charSource = Resources.asCharSource(satelliteDataURL, UTF_8);
@@ -193,6 +184,14 @@ public class GraphQLService {
             reader.lines().map(mapToIntegratorControls).forEach(ic -> {
                 logger.debug("        Saving IntegratorControls {}", ic.getId());
                 integratorControlsRepository.save(ic);
+            });
+
+            logger.debug("    Loading ElementConversionControls data...");
+            charSource = Resources.asCharSource(eccURL, UTF_8);
+            reader = charSource.openBufferedStream();
+            reader.lines().map(mapToElementConversionControls).forEach(ecc -> {
+                logger.debug("        Saving ElementConversionControls {}", ecc.getId());
+                elementConversionControlsRepository.save(ecc);
             });
 
         } catch (IOException e) {
@@ -225,7 +224,7 @@ public class GraphQLService {
             IntegratorControls ic = new IntegratorControls(
                     fields.get(0),
                     fields.get(1),
-                    IcApplication.getByIntValue(Integer.valueOf(fields.get(2))),
+                    ApplicationEnum.getByIntValue(Integer.valueOf(fields.get(2))),
                     IcCoordinateSystem.getByIntValue(Integer.valueOf(fields.get(3))),
                     Double.valueOf(fields.get(4)),
                     Double.valueOf(fields.get(5)),
@@ -238,6 +237,32 @@ public class GraphQLService {
                     StepSizeSource.getByIntValue(Integer.valueOf(fields.get(12)))
                     );
             return ic;
+        } catch (NumberFormatException e) {
+            logger.error("Error converting csv line to IntegratorControls.", e);
+        }
+        return null;
+    };
+
+    private Function<String, ElementConversionControls> mapToElementConversionControls = (line) -> {
+        List<String> fields = Splitter.on(',').trimResults().splitToList(line);
+        try {
+            ElementConversionControls ecc = new ElementConversionControls(
+                    fields.get(0),
+                    fields.get(1),
+                    ApplicationEnum.getByIntValue(Integer.valueOf(fields.get(2))),
+                    EpochPlacement.getByIntValue(Integer.valueOf(fields.get(3))),
+                    Double.valueOf(fields.get(4)),
+                    Double.valueOf(fields.get(5)),
+                    Boolean.valueOf(fields.get(6)),
+                    Double.valueOf(fields.get(7)),
+                    Double.valueOf(fields.get(8)),
+                    Integer.valueOf(fields.get(9)),
+                    Double.valueOf(fields.get(10)),
+                    Double.valueOf(fields.get(11)),
+                    Double.valueOf(fields.get(12)),
+                    ExtrapolationSpanUnits.getByIntValue(Integer.valueOf(fields.get(13)))
+            );
+            return ecc;
         } catch (NumberFormatException e) {
             logger.error("Error converting csv line to IntegratorControls.", e);
         }

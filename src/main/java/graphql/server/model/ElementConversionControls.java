@@ -41,19 +41,19 @@ public class ElementConversionControls implements Serializable
      * unique identifier
      */
     @Id
-    private String elementConvControlsUuid;
+    private String id;
 
     /**
      * Associated satellite
      */
     @NotNull
-    private String satelliteUuid;
+    private String satelliteId;
 
     /**
      * Enumeration to indicate if the controls are associated with a specific application
      */
     @NotNull
-    private EccApplication application;
+    private ApplicationEnum application;
 
     /**
      * Epoch Placement

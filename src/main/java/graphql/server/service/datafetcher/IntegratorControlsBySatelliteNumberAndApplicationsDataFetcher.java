@@ -3,7 +3,7 @@ package graphql.server.service.datafetcher;
 import com.google.common.collect.Lists;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.server.model.IcApplication;
+import graphql.server.model.ApplicationEnum;
 import graphql.server.model.IntegratorControls;
 import graphql.server.model.Satellite;
 import graphql.server.repository.IntegratorControlsRepository;
@@ -37,9 +37,9 @@ public class IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher imple
         }
 
         List<String> applicationStrings = environment.getArgument("applications");
-        List<IcApplication> applications = null;
+        List<ApplicationEnum> applications = null;
         if (applicationStrings != null){
-            applications = IcApplication.getValues(applicationStrings);
+            applications = ApplicationEnum.getValues(applicationStrings);
         }
 
         // default is NotAssociated

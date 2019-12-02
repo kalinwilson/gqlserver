@@ -1,9 +1,8 @@
 package graphql.server.service.datafetcher;
 
-import com.google.common.collect.Lists;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.server.model.IcApplication;
+import graphql.server.model.ApplicationEnum;
 import graphql.server.model.IntegratorControls;
 import graphql.server.model.Satellite;
 import graphql.server.repository.IntegratorControlsRepository;
@@ -27,7 +26,7 @@ public class IntegratorControlsBySatelliteIdAndApplicationsDataFetcher implement
     @Override
     public List<IntegratorControls> get(DataFetchingEnvironment environment) throws Exception {
         Satellite satellite = environment.getSource();
-        List<IcApplication> applications = environment.getArgument("applications");
+        List<ApplicationEnum> applications = environment.getArgument("applications");
 
         // default is NotAssociated
 //        if(applications == null){

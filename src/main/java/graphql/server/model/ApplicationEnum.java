@@ -21,21 +21,21 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
-public enum IcApplication
+public enum ApplicationEnum
 {
     NotAssociated,
     ROB,
     DCA;
 
-    public static IcApplication getByIntValue(int value) {
-        return IcApplication.values()[value];
+    public static ApplicationEnum getByIntValue(int value) {
+        return ApplicationEnum.values()[value];
     }
 
-    public static List<IcApplication> getValues(List<String> applicationStrings) {
-        List<IcApplication> applications = Lists.newArrayList();
+    public static List<ApplicationEnum> getValues(List<String> applicationStrings) {
+        List<ApplicationEnum> applications = Lists.newArrayList();
         for(String appString : applicationStrings){
             try {
-                applications.add(IcApplication.valueOf(appString));
+                applications.add(ApplicationEnum.valueOf(appString));
             } catch(Throwable e){
                 continue; // ignore bad values
             }

@@ -53,7 +53,7 @@ public class IntegratorControls implements Serializable
      * Enumeration to indicate if the controls are associated with a specific application
      */
     @NotNull
-    private IcApplication application;
+    private ApplicationEnum application;
 
     /**
      * Identifies the integrator controls coordinate system

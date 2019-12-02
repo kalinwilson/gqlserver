@@ -17,5 +17,6 @@ type Satellite{
     name:String
     intlDesignator:String
     category:Int
-    integratorControls(applications: [ApplicationEnum]) : IntegratorControls
+    integratorControls(applications: [ApplicationEnum]) : [IntegratorControls]
+    elementConversionControls(applications: [ApplicationEnum]) : [ElementConversionControls]
 }
