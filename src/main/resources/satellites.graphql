@@ -4,7 +4,7 @@ schema{
 
 type ConsolidatedQuery{
     "Fetch a list of satellites by number and/or category. Numbers and categories are optional."
-    satellites(satelliteNumbers: [Int], categories: [Int], orderBy: SatelliteOrderByInput): [Satellite]
+    satellites(satelliteNumbers: [Int], categories: [Int], orderBy: SatelliteOrderByInput, page: Int, limit: Int!): [Satellite]
     satelliteById(id: ID!): Satellite
 }
 

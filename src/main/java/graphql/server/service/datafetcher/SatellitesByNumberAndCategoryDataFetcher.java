@@ -6,6 +6,9 @@ import graphql.server.model.Satellite;
 import graphql.server.repository.SatelliteRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +30,15 @@ public class SatellitesByNumberAndCategoryDataFetcher implements DataFetcher<Lis
         List<Integer> satelliteNumbers = environment.getArgument("satelliteNumbers");
         List<Integer> categories = environment.getArgument("categories");
         String orderByString = environment.getArgument("orderBy");
+        Integer pageNumber = environment.getArgument("page");
+        if(pageNumber == null){
+            pageNumber = 0;
+        }
+
+        Integer limit = environment.getArgument("limit");
+        if(limit == null){
+            limit = 30;
+        }
 
         Sort sort = null;
         if(orderByString == null){
@@ -50,6 +62,8 @@ public class SatellitesByNumberAndCategoryDataFetcher implements DataFetcher<Lis
             }
         }
 
+        Pageable request = PageRequest.of(pageNumber, limit, sort);
+
 
         // default category
 //        if(categories == null){
@@ -58,21 +72,21 @@ public class SatellitesByNumberAndCategoryDataFetcher implements DataFetcher<Lis
 //            categories.add(1);
 //        }
 
-        List<Satellite> satellites = null;
+        Page<Satellite> satellites = null;
         if(satelliteNumbers == null && categories == null) {
             log.debug("Fetching the data for all satellites in all categories.");
-            satellites = satelliteRepository.findAll(sort);
+            satellites = satelliteRepository.findAll(request);
         }
         if(satelliteNumbers == null && categories != null){
             log.debug("Fetching the data for all satellites in categories {}.", categories);
-            satellites = satelliteRepository.getByCategoryIn(categories, sort);
+            satellites = satelliteRepository.getByCategoryIn(categories, request);
         } else if (categories == null && satelliteNumbers != null) {
             log.debug("Fetching the data for satellites {} in all categories.", satelliteNumbers);
-            satellites = satelliteRepository.findBySatelliteNumberIn(satelliteNumbers, sort);
+            satellites = satelliteRepository.findBySatelliteNumberIn(satelliteNumbers, request);
         }else {
             log.debug("Fetching the data for Satellite numbers {} and categories {}.", satelliteNumbers, categories);
-            satellites = satelliteRepository.getBySatelliteNumberInAndCategoryIn(satelliteNumbers, categories, sort);
+            satellites = satelliteRepository.getBySatelliteNumberInAndCategoryIn(satelliteNumbers, categories, request);
         }
-        return satellites;
+        return satellites.getContent();
     }
 }

@@ -10,6 +10,7 @@ import graphql.server.repository.IntegratorControlsRepository;
 import graphql.server.repository.SatelliteRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -32,8 +33,8 @@ public class IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher imple
         Integer satelliteNumber = environment.getArgument("satelliteNumber");
         Satellite satellite = null;
         if(satelliteNumber != null) {
-            List<Satellite> satellites = satelliteRepository.getBySatelliteNumberInAndCategoryIn(Lists.newArrayList(satelliteNumber), Lists.newArrayList(1), null);
-            satellite = satellites.get(0);
+            Page<Satellite> satellites = satelliteRepository.getBySatelliteNumberInAndCategoryIn(Lists.newArrayList(satelliteNumber), Lists.newArrayList(1), null);
+            satellite = satellites.getContent().get(0);
         }
 
         List<String> applicationStrings = environment.getArgument("applications");
