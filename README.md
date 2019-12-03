@@ -30,3 +30,15 @@ The graphql schemas are in src/main/resources
 - integrationControls.graphql
 - elementConversionControls.graphql
 
+### toturials
+The following tutorials were used as a basis for this demo project
+- (graphql-java Spring Boot Tutorial)[https://www.graphql-java.com/tutorials/getting-started-with-spring-boot/#schema]
+- (SpringFramework Guru Tutorial)[https://springframework.guru/using-graphql-in-a-spring-boot-application/]
+
+
+### Useful Links
+- (GraphQL.org)[https://graphql.org/]
+- (GraphQL Java)[https://www.graphql-java.com/)
+- (How To GraphQL)[https://www.howtographql.com/]
+- (GraphQL Playground)[https://github.com/prisma-labs/graphql-playground]
+- (GraphQL Editor - commercial)[https://graphqleditor.com/]
