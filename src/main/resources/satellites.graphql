@@ -1,0 +1,31 @@
+schema{
+    query:ConsolidatedQuery
+}
+
+type ConsolidatedQuery{
+    "Fetch a list of satellites by number and/or category. Numbers and categories are optional."
+    satellites(satelliteNumbers: [Int], categories: [Int], orderBy: SatelliteOrderByInput): [Satellite]
+    satelliteById(id: ID!): Satellite
+}
+
+type Satellite{
+    id:ID
+    satelliteNumber:Int
+    name:String
+    intlDesignator:String
+    category:Int
+    integratorControls(applications: [ApplicationEnum]) : [IntegratorControls]
+    elementConversionControls(applications: [ApplicationEnum]) : [ElementConversionControls]
+}
+
+enum Direction {
+    ASC
+    DESC
+}
+
+enum SatelliteOrderByInput{
+    satelliteNumber_ASC
+    satelliteNumber_DESC
+    name_ASC
+    name_DESC
+}

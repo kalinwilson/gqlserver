@@ -1,0 +1,29 @@
+type ElementConversionControls {
+    id: ID
+    satelliteId: ID
+    application: ApplicationEnum
+    epochPlacement: EpochPlacementEnum
+    extrapolationDcDeltaSpan: Float
+    extrapolationDcDragErRms: Float
+    extrapolationDc: Boolean
+    extrapolationDcEpochErRms: Float
+    extrapolationDcEpochMargin: Float
+    extrapolationDcKeepNthPnt: Int
+    extrapolationDcMaxPosRms: Float
+    extrapolationDcMinSpan: Float
+    extrapolationDcSpan: Float
+    extrapolationSpanUnits: ExtrapolationSpanUnitsEnum
+}
+
+enum EpochPlacementEnum {
+    DCEpoch
+    DCEpochPriorAscendingNode
+    LastDCObservation
+    LastDCObservationPriorAscendingNode
+    NextPerigeeAfterDCEndTime
+}
+
+enum ExtrapolationSpanUnitsEnum {
+    Days
+    Revs
+}

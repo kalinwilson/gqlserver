@@ -1,0 +1,67 @@
+
+extend type ConsolidatedQuery {
+    "Fetch an IntegratorControls object by its id."
+    integratorControlsById(id: ID!): IntegratorControls
+
+    "Fetch an IntegratorControls object by its associated satellite id."
+    integratorControlsBySatelliteIdAndApplications(satId: ID!, applications: [ApplicationEnum]): [IntegratorControls]
+
+    "Fetch an IntegratorControls object by its associated satellite number."
+    integratorControlsBySatelliteNumberAndApplications(satelliteNumber: Int!, applications: [ApplicationEnum]): [IntegratorControls]
+}
+
+type IntegratorControls {
+    id: ID
+    satelliteId: ID
+    application: ApplicationEnum
+    coordinateSystem: CoordinateSystemEnum
+    errorControl: Float
+    inputStepSize: Float
+    partialDerivatives: PartialDerivativesEnum
+    printStepChangeFlag: Boolean
+    propagator: PropagatorEnum
+    spadocEmulationFlag: Boolean
+    stepMode: StepModeEnum
+    stepSizeMethod: StepSizeMethodEnum
+    stepSizeSource: StepSizeSourceEnum
+}
+
+enum ApplicationEnum {
+    NotAssociated
+    ROB
+    DCA
+}
+
+enum CoordinateSystemEnum {
+    IntegratorJ2000
+    IntegratorEpoch
+}
+
+enum PartialDerivativesEnum {
+    AnalyticDerivative
+    FullNumericalDerivative
+    FastNumericalDerivative
+}
+
+enum PropagatorEnum {
+    SP
+    SGP
+    SGP4
+    PPT3
+}
+
+enum StepModeEnum {
+    AutomaticIntegration
+    TimeIntegration
+    SIntegration
+}
+
+enum StepSizeMethodEnum {
+    VariableStepIntegration
+    FixedStepIntegration
+}
+
+enum StepSizeSourceEnum {
+    ManualStepSelection
+    AutomaticStepSelection
+}

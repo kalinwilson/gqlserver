@@ -1,0 +1,92 @@
+Some Example queries for the data used in this demo
+
+query SatellitesWithControls {
+  satellites(satelliteNumbers: [11, 5, 25544]) {
+    id
+    name
+    satelliteNumber
+    category
+    integratorControls {
+      ...integratorControlsAll
+    }
+    elementConversionControls {
+      ...elementConversionControlFields
+    }
+  }
+}
+
+fragment integratorControlsAll on IntegratorControls {
+  id
+  satelliteId
+  application
+  coordinateSystem
+  errorControl
+  inputStepSize
+  partialDerivatives
+  printStepChangeFlag
+  propagator
+  spadocEmulationFlag
+  stepMode
+  stepSizeMethod
+  stepSizeSource
+}
+
+fragment elementConversionControlFields on ElementConversionControls {
+  id
+  satelliteId
+  application
+  epochPlacement
+  extrapolationDcDeltaSpan
+  extrapolationDcDragErRms
+  extrapolationDc
+  extrapolationDcEpochErRms
+  extrapolationDcEpochMargin
+  extrapolationDcKeepNthPnt
+  extrapolationDcMaxPosRms
+  extrapolationDcMinSpan
+  extrapolationDcSpan
+  extrapolationSpanUnits
+}
+
+---------------------
+{
+  satelliteById(id: "0001369b-f399-4907-8082-a83d9f11ac53"){
+    name
+  }
+}
+
+---------------------
+query WorkingSatellitesWithControls {
+  satellites(categories: [1], orderBy: satelliteNumber_ASC) {
+    id
+    name
+    satelliteNumber
+  integratorControls {
+      ...integratorControlsAll
+    }
+}
+
+fragment integratorControlsAll on IntegratorControls {
+  id
+  satelliteId
+  application
+  coordinateSystem
+  errorControl
+  inputStepSize
+  partialDerivatives
+  printStepChangeFlag
+  propagator
+  spadocEmulationFlag
+  stepMode
+  stepSizeMethod
+  stepSizeSource
+}
+
+----------------------------
+query WorkingSatellitesForDisplay {
+  satellites(categories: [1], orderBy: satelliteNumber_ASC) {
+    id
+    name
+    satelliteNumber
+  }
+}
