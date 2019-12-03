@@ -1,23 +1,32 @@
-# Getting Started
+# Java Based GraphQL Server Demo
 
-### Reference Documentation
-For further reference, please consider the following sections:
+This is a demo application which serves data through a GraphQL query interface over HTTP.
 
-* [Official Gradle documentation](https://docs.gradle.org)
-* [Spring Boot Gradle Plugin Reference Guide](https://docs.spring.io/spring-boot/docs/2.2.1.RELEASE/gradle-plugin/reference/html/)
-* [Spring Configuration Processor](https://docs.spring.io/spring-boot/docs/2.2.1.RELEASE/reference/htmlsingle/#configuration-metadata-annotation-processor)
-* [Spring Web](https://docs.spring.io/spring-boot/docs/2.2.1.RELEASE/reference/htmlsingle/#boot-features-developing-web-applications)
-* [Spring Boot DevTools](https://docs.spring.io/spring-boot/docs/2.2.1.RELEASE/reference/htmlsingle/#using-boot-devtools)
+This project uses Spring Boot, Spring Data JPA, HSQLDB, and Graphql-Java. 
 
-### Guides
-The following guides illustrate how to use some features concretely:
+## Build and Run
+- Build: `./gradlew docker` will compile the project and produce a docker image named 'graphql.server.demo/gqlserver' in your local docker image cache. (This assumes you have Docker installed)
+- Build: `./gradlew build' will compile and produce an uber jar at build/libs which can be run with `java -jar gqlserver-0.0.1-SNAPSHOT.jar`
+- Run: `docker run -rm -d -p 9002:9002 graphql.server.demo/gqlserver`
 
-* [Building a RESTful Web Service](https://spring.io/guides/gs/rest-service/)
-* [Serving Web Content with Spring MVC](https://spring.io/guides/gs/serving-web-content/)
-* [Building REST services with Spring](https://spring.io/guides/tutorials/bookmarks/)
+## Querying the Server
+- GraphQL Playground is a nice app you can install, https://github.com/prisma-labs/graphql-playground, Assuming you ran with the above command, the server is at http://localhost:9002/graphql
+- The server has a built in query browser at http://localhost:9002/graphiql
 
-### Additional Links
-These additional references should also help you:
+### Example Query
+see the file exampleQueries.txt
 
-* [Gradle Build Scans – insights for your project's build](https://scans.gradle.com#gradle)
+query WorkingSatellitesForDisplay {
+  satellites(categories: [1], orderBy: satelliteNumber_ASC) {
+    id
+    name
+    satelliteNumber    
+  }
+}
+
+### Schema
+The graphql schemas are in src/main/resources   
+- satellite.graphql
+- integrationControls.graphql
+- elementConversionControls.graphql
 

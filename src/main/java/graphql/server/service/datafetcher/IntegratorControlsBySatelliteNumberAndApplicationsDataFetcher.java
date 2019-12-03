@@ -32,7 +32,7 @@ public class IntegratorControlsBySatelliteNumberAndApplicationsDataFetcher imple
         Integer satelliteNumber = environment.getArgument("satelliteNumber");
         Satellite satellite = null;
         if(satelliteNumber != null) {
-            List<Satellite> satellites = satelliteRepository.getBySatelliteNumberInAndCategoryIn(Lists.newArrayList(satelliteNumber), Lists.newArrayList(1));
+            List<Satellite> satellites = satelliteRepository.getBySatelliteNumberInAndCategoryIn(Lists.newArrayList(satelliteNumber), Lists.newArrayList(1), null);
             satellite = satellites.get(0);
         }
 

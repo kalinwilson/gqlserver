@@ -3,11 +3,8 @@ schema{
 }
 
 type ConsolidatedQuery{
-    allSatellites: [Satellite]
-    satelliteByNumber(satelliteNumber: Int!): [Satellite]
-
-    "Fetch a list of satellites by number and category. A list of satellite numbers, or null to select all satellites in a category. Categories are OR'd. The default category is 1."
-    satellitesByNumberAndCategory(satelliteNumbers: [Int], categories: [Int]): [Satellite]
+    "Fetch a list of satellites by number and/or category. Numbers and categories are optional."
+    satellites(satelliteNumbers: [Int], categories: [Int], orderBy: SatelliteOrderByInput): [Satellite]
     satelliteById(id: ID!): Satellite
 }
 
@@ -19,4 +16,16 @@ type Satellite{
     category:Int
     integratorControls(applications: [ApplicationEnum]) : [IntegratorControls]
     elementConversionControls(applications: [ApplicationEnum]) : [ElementConversionControls]
+}
+
+enum Direction {
+    ASC
+    DESC
+}
+
+enum SatelliteOrderByInput{
+    satelliteNumber_ASC
+    satelliteNumber_DESC
+    name_ASC
+    name_DESC
 }

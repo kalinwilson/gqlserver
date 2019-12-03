@@ -4,10 +4,10 @@ extend type ConsolidatedQuery {
     integratorControlsById(id: ID!): IntegratorControls
 
     "Fetch an IntegratorControls object by its associated satellite id."
-    integratorControlsBySatelliteIdAndApplications(satId: ID, applications: [ApplicationEnum]): [IntegratorControls]
+    integratorControlsBySatelliteIdAndApplications(satId: ID!, applications: [ApplicationEnum]): [IntegratorControls]
 
     "Fetch an IntegratorControls object by its associated satellite number."
-    integratorControlsBySatelliteNumberAndApplications(satelliteNumber: Int, applications: [ApplicationEnum]): [IntegratorControls]
+    integratorControlsBySatelliteNumberAndApplications(satelliteNumber: Int!, applications: [ApplicationEnum]): [IntegratorControls]
 }
 
 type IntegratorControls {
